@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caitlin's Productivity Timer</title>
+<style>
+  :root {
+    --bg: #0f2119;
+    --card: #17301f;
+    --accent: #4caf6d;
+    --accent2: #8bd99c;
+    --text: #eafaf0;
+    --muted: #7fa98f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--text);
+  }
+  body {
+    background-image:
+      radial-gradient(ellipse 500px 300px at 8% 100%, rgba(76,175,109,0.18), transparent),
+      radial-gradient(ellipse 400px 260px at 95% 8%, rgba(139,217,156,0.12), transparent);
+  }
+  .card {
+    position: relative;
+    overflow: visible;
+    background: var(--card);
+    border-radius: 24px;
+    padding: 40px 48px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    width: 360px;
+  }
+  .plant-corner {
+    position: absolute;
+    bottom: -1px;
+    left: -1px;
+    width: 90px;
+    height: auto;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+  .smoke-character {
+    position: absolute;
+    top: -40px;
+    right: 18px;
+    width: 62px;
+    height: auto;
+    pointer-events: none;
+    display: none;
+  }
+  .smoke-character.visible {
+    display: block;
+  }
+  @keyframes smokeDrift {
+    0% { transform: translateY(0) scale(1); opacity: 0.55; }
+    100% { transform: translateY(-16px) scale(1.6); opacity: 0; }
+  }
+  .smoke-wisp {
+    animation: smokeDrift 2.4s ease-out infinite;
+    transform-origin: center;
+  }
+  .smoke-wisp:nth-child(2) { animation-delay: 0.8s; }
+  .smoke-wisp:nth-child(3) { animation-delay: 1.6s; }
+  .cube-character {
+    position: absolute;
+    top: -46px;
+    right: 14px;
+    width: 68px;
+    height: auto;
+    pointer-events: none;
+    display: none;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35));
+  }
+  .cube-character.visible {
+    display: block;
+  }
+  .cube-character.spinning {
+    animation: cubeIdle 2.6s ease-in-out infinite;
+  }
+  @keyframes cubeIdle {
+    0%, 100% { transform: rotate(-4deg) translateY(0); }
+    50% { transform: rotate(4deg) translateY(-3px); }
+  }
+  .cube-character polygon {
+    stroke: #14231a;
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+    transition: fill 0.35s ease;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .cube-character polygon.just-solved {
+    animation: stickerPop 0.5s ease;
+  }
+  @keyframes stickerPop {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+  }
+  .leaf-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    margin: 18px 0 4px;
+  }
+  .leaf-divider::before,
+  .leaf-divider::after {
+    content: "";
+    height: 1px;
+    width: 40px;
+    background: rgba(139,217,156,0.2);
+  }
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 24px;
+  }
+  .modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+  .mode-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .mode-btn.active {
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+  }
+  .time {
+    font-size: 84px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin: 8px 0 32px;
+    letter-spacing: 2px;
+  }
+  .time.running { color: var(--accent2); }
+  .controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+  button.main {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 14px 36px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  button.main:hover { opacity: 0.9; }
+  button.main:active { transform: scale(0.96); }
+  button.reset {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 14px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  button.reset:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+  .count {
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <svg class="plant-corner" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 100 L18 68 L46 68 L52 100 Z" fill="#3d2b1f" opacity="0.55"/>
+      <path d="M31 68 C20 52 16 32 26 10 C32 31 33 51 31 68 Z" fill="var(--accent)" opacity="0.85"/>
+      <path d="M31 68 C42 47 57 38 68 17 C57 41 46 55 31 68 Z" fill="var(--accent2)" opacity="0.75"/>
+      <path d="M31 68 C16 58 6 47 0 31 C15 41 26 52 31 68 Z" fill="var(--accent)" opacity="0.65"/>
+    </svg>
+    <svg id="smokeCharacter" class="smoke-character" viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg">
+      <circle class="smoke-wisp" cx="80" cy="20" r="4" fill="rgba(234,250,240,0.55)"/>
+      <circle class="smoke-wisp" cx="83" cy="14" r="3" fill="rgba(234,250,240,0.4)"/>
+      <circle class="smoke-wisp" cx="86" cy="9" r="2.2" fill="rgba(234,250,240,0.3)"/>
+      <path d="M22 45 C19 21 33 8 50 8 C67 8 81 21 78 45 C77 35 71 29 64 28 C59 23 55 21 50 21 C45 21 41 23 36 28 C29 29 23 35 22 45 Z" fill="#1c1310"/>
+      <circle cx="50" cy="58" r="26" fill="#c9915f"/>
+      <rect x="17" y="28" width="11" height="56" rx="5" fill="#1c1310"/>
+      <rect x="72" y="28" width="11" height="56" rx="5" fill="#1c1310"/>
+      <path d="M36 55 C37 53.5 40 53.5 41 55" stroke="#1c1310" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <path d="M59 55 C60 53.5 63 53.5 64 55" stroke="#1c1310" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <circle cx="41" cy="58" r="2" fill="#1c1310"/>
+      <circle cx="59" cy="58" r="2" fill="#1c1310"/>
+      <path d="M44 68 C47 70.5 53 70.5 56 68" stroke="#a8503f" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <rect x="68" y="62" width="24" height="6" rx="1.5" fill="#f4f1ea" transform="rotate(-20 68 62)"/>
+      <rect x="87" y="57" width="6" height="6" rx="1.5" fill="#d9622f" transform="rotate(-20 87 57)"/>
+    </svg>
+    <svg id="cubeCharacter" class="cube-character visible" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>
+    <h1>Caitlin's Productivity Timer</h1>
+    <div class="modes">
+      <button class="mode-btn active" data-mode="work" data-min="25">🍅 Focus</button>
+      <button class="mode-btn" data-mode="short" data-min="5">💆‍♀️ Korte pauze</button>
+      <button class="mode-btn" data-mode="long" data-min="15">🦒 Lange pauze</button>
+      <button class="mode-btn" data-mode="smoke" data-min="10">🚬 Rookpauze</button>
+    </div>
+    <div class="time" id="time">25:00</div>
+    <div class="controls">
+      <button class="main" id="toggle">Start</button>
+      <button class="reset" id="reset">Reset</button>
+    </div>
+    <div class="leaf-divider">🌿</div>
+    <div class="count" id="count">Voltooide sessies: 0</div>
+  </div>
+
+<audio id="beep" preload="auto">
+  <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==" type="audio/wav">
+</audio>
+
+<script>
+  const timeEl = document.getElementById('time');
+  const toggleBtn = document.getElementById('toggle');
+  const resetBtn = document.getElementById('reset');
+  const countEl = document.getElementById('count');
+  const modeButtons = document.querySelectorAll('.mode-btn');
+  const smokeCharacter = document.getElementById('smokeCharacter');
+  const cubeSvg = document.getElementById('cubeCharacter');
+  const cubeCharacter = cubeSvg;
+
+  let totalSeconds = 25 * 60;
+  let remaining = totalSeconds;
+  let running = false;
+  let interval = null;
+  let pomodoroCount = 0;
+  let currentMode = 'work';
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const cubeColors = ['#f5f5f0', '#ffd400', '#d81f26', '#ff8c1a', '#1656d1', '#17a34a'];
+  const cubeFaceSolved = { top: '#f5f5f0', left: '#d81f26', right: '#1656d1' };
+  let cubeStickers = [];
+  let cubeScramble = [];
+  let cubeSolveOrder = [];
+
+  function buildCube() {
+    cubeSvg.innerHTML = '';
+    const Top = {x:50,y:3}, Right = {x:93,y:26}, Center = {x:50,y:49}, Left = {x:7,y:26}, Bottom = {x:50,y:96}, LowerLeft = {x:7,y:74}, LowerRight = {x:93,y:74};
+    const faces = [
+      { base: Top, u: {x:Right.x-Top.x, y:Right.y-Top.y}, v: {x:Left.x-Top.x, y:Left.y-Top.y}, solved: cubeFaceSolved.top },
+      { base: Left, u: {x:Center.x-Left.x, y:Center.y-Left.y}, v: {x:LowerLeft.x-Left.x, y:LowerLeft.y-Left.y}, solved: cubeFaceSolved.left },
+      { base: Right, u: {x:Center.x-Right.x, y:Center.y-Right.y}, v: {x:LowerRight.x-Right.x, y:LowerRight.y-Right.y}, solved: cubeFaceSolved.right },
+    ];
+    cubeStickers = [];
+    faces.forEach(face => {
+      for (let j = 0; j < 3; j++) {
+        for (let i = 0; i < 3; i++) {
+          const u0 = i/3, u1 = (i+1)/3, v0 = j/3, v1 = (j+1)/3;
+          const pt = (u, v) => ({ x: face.base.x + u*face.u.x + v*face.v.x, y: face.base.y + u*face.u.y + v*face.v.y });
+          const pts = [pt(u0,v0), pt(u1,v0), pt(u1,v1), pt(u0,v1)];
+          const poly = document.createElementNS(svgNS, 'polygon');
+          poly.setAttribute('points', pts.map(p => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' '));
+          cubeSvg.appendChild(poly);
+          cubeStickers.push({ el: poly, solvedColor: face.solved, solved: false });
+        }
+      }
+    });
+    cubeScramble = cubeStickers.map(() => cubeColors[Math.floor(Math.random() * cubeColors.length)]);
+    cubeSolveOrder = cubeStickers.map((_, idx) => idx);
+    for (let k = cubeSolveOrder.length - 1; k > 0; k--) {
+      const r = Math.floor(Math.random() * (k + 1));
+      [cubeSolveOrder[k], cubeSolveOrder[r]] = [cubeSolveOrder[r], cubeSolveOrder[k]];
+    }
+    updateCube(0);
+  }
+
+  function updateCube(progress) {
+    const solvedCount = Math.round(progress * cubeStickers.length);
+    const solvedSet = new Set(cubeSolveOrder.slice(0, solvedCount));
+    cubeStickers.forEach((s, idx) => {
+      const willBeSolved = solvedSet.has(idx);
+      s.el.setAttribute('fill', willBeSolved ? s.solvedColor : cubeScramble[idx]);
+      if (willBeSolved && !s.solved) {
+        s.el.classList.add('just-solved');
+        setTimeout(() => s.el.classList.remove('just-solved'), 500);
+      }
+      s.solved = willBeSolved;
+    });
+  }
+
+  function todayKey() {
+    const d = new Date();
+    return `productivity_count_${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+  }
+
+  function loadCount() {
+    try {
+      const v = localStorage.getItem(todayKey());
+      pomodoroCount = v ? parseInt(v, 10) : 0;
+    } catch (e) { pomodoroCount = 0; }
+    countEl.textContent = `Voltooide sessies vandaag: ${pomodoroCount}`;
+  }
+
+  function saveCount() {
+    try { localStorage.setItem(todayKey(), String(pomodoroCount)); } catch (e) {}
+  }
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60).toString().padStart(2, '0');
+    const sec = (s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+  }
+
+  function render() {
+    timeEl.textContent = formatTime(remaining);
+    timeEl.classList.toggle('running', running);
+    document.title = `${formatTime(remaining)} - Productivity Timer`;
+  }
+
+  function tick() {
+    if (remaining > 0) {
+      remaining--;
+      if (currentMode === 'work') {
+        updateCube(1 - remaining / totalSeconds);
+      }
+      render();
+    } else {
+      clearInterval(interval);
+      running = false;
+      toggleBtn.textContent = 'Start';
+      cubeCharacter.classList.remove('spinning');
+      if (currentMode === 'work') {
+        pomodoroCount++;
+        countEl.textContent = `Voltooide sessies vandaag: ${pomodoroCount}`;
+        saveCount();
+        updateCube(1);
+      }
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.8);
+      } catch (e) {}
+    }
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    running = !running;
+    if (running) {
+      toggleBtn.textContent = 'Pauze';
+      interval = setInterval(tick, 1000);
+    } else {
+      toggleBtn.textContent = 'Start';
+      clearInterval(interval);
+    }
+    cubeCharacter.classList.toggle('spinning', running && currentMode === 'work');
+  });
+
+  resetBtn.addEventListener('click', () => {
+    running = false;
+    clearInterval(interval);
+    remaining = totalSeconds;
+    toggleBtn.textContent = 'Start';
+    cubeCharacter.classList.remove('spinning');
+    if (currentMode === 'work') {
+      buildCube();
+    }
+    render();
+  });
+
+  modeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+      totalSeconds = parseInt(btn.dataset.min, 10) * 60;
+      remaining = totalSeconds;
+      running = false;
+      clearInterval(interval);
+      toggleBtn.textContent = 'Start';
+      smokeCharacter.classList.toggle('visible', currentMode === 'smoke');
+      cubeCharacter.classList.toggle('visible', currentMode === 'work');
+      cubeCharacter.classList.remove('spinning');
+      if (currentMode === 'work') {
+        buildCube();
+      }
+      render();
+    });
+  });
+
+  loadCount();
+  buildCube();
+  render();
+</script>
+</body>
+</html>
